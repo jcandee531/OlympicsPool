@@ -14,6 +14,11 @@
           Build a team by selecting one country from each tier. Track standings
           as medal counts update hourly.
         </p>
+        <div class="hero__actions">
+          <a class="button button--ghost" href="leaderboard.html">
+            View public leaderboard
+          </a>
+        </div>
       </div>
     </header>
 
@@ -28,7 +33,7 @@
           <a id="medal-source-link" href="#" target="_blank" rel="noreferrer">
             Wikipedia medal table
           </a>
-          (update the URL to 2026 once live results are available).
+          (server fetches this source hourly; update server.js for 2026).
         </p>
         <div class="status-row">
           <button id="refresh-button" type="button">Refresh medals</button>
@@ -46,7 +51,13 @@
 
       <section class="card">
         <div class="card__header">
-          <h2>Create your entry</h2>
+          <div>
+            <h2>Create your entry</h2>
+            <div class="lock-status">
+              <span id="lock-badge" class="badge badge--success">Open</span>
+              <span id="lock-deadline" class="muted">No deadline set</span>
+            </div>
+          </div>
           <span class="badge" id="entry-count">0 / 10 entries used</span>
         </div>
         <form id="entry-form">
@@ -70,6 +81,7 @@
             </button>
           </div>
           <div id="form-message" class="message"></div>
+          <div id="lock-message" class="message"></div>
         </form>
       </section>
 
@@ -104,6 +116,40 @@
 
       <section class="card">
         <div class="card__header">
+          <h2>Admin controls</h2>
+          <span class="badge">Requires admin token</span>
+        </div>
+        <form id="admin-form">
+          <div class="grid grid--two">
+            <label>
+              Admin token
+              <input id="admin-token" type="password" autocomplete="off" />
+            </label>
+            <label>
+              Entry deadline
+              <input id="admin-deadline" type="datetime-local" />
+            </label>
+          </div>
+          <label class="checkbox">
+            <input id="admin-lock-now" type="checkbox" />
+            Lock immediately (also locks automatically after deadline)
+          </label>
+          <div class="form-actions">
+            <button type="submit">Update lock settings</button>
+            <button
+              type="button"
+              id="admin-unlock"
+              class="button--secondary"
+            >
+              Unlock &amp; clear deadline
+            </button>
+          </div>
+          <div id="admin-message" class="message"></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
           <h2>Country points</h2>
           <span class="badge">Auto-calculated</span>
         </div>
@@ -134,8 +180,8 @@
 
     <footer class="footer">
       <p>
-        Tip: share this file via any static host (GitHub Pages, Netlify) to let
-        the whole pool access the same experience.
+        Tip: run <code>npm start</code> and share the hosted URL so everyone
+        sees the same entries and leaderboard.
       </p>
     </footer>
 

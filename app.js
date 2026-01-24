@@ -1,15 +1,6 @@
-const MEDAL_SOURCE_URL =
-  "https://en.wikipedia.org/api/rest_v1/page/html/2022_Winter_Olympics_medal_table";
-const MEDAL_SOURCE_LABEL =
-  "Wikipedia 2022 Winter Olympics medal table (REST API)";
-const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
-const MAX_MEMBERS = 10;
-
-const POINT_VALUES = {
-  gold: 3,
-  silver: 2,
-  bronze: 1,
-};
+const API_BASE = "";
+const ENTRY_REFRESH_MS = 30 * 1000;
+const MEDAL_REFRESH_MS = 5 * 60 * 1000;
 
 const ALL_COUNTRIES = [
   "Albania",
@@ -190,37 +181,25 @@ const TIER_4 = [
   "Chinese Taipei",
 ];
 
-const COUNTRY_ALIASES = {
-  "People's Republic of China": "China",
-  "Republic of Korea": "South Korea",
-  "Korea": "South Korea",
-  "Russian Olympic Committee": "ROC",
-  "United States of America": "United States",
-  "Great Britain and Northern Ireland": "Great Britain",
-  "Chinese Taipei (TPE)": "Chinese Taipei",
-  "Timor Leste": "Timor-Leste",
-  "Hong Kong, China": "Hong Kong",
-  "Virgin Islands, U.S.": "Virgin Islands",
-  "Czechia": "Czech Republic",
-};
-
-const STORAGE_KEYS = {
-  entries: "winter-olympics-pool-entries",
-  medals: "winter-olympics-medal-cache",
-};
-
+let entries = [];
 let medalData = {};
-let medalLastUpdated = null;
-let isFetching = false;
+let medalMeta = {
+  lastUpdated: null,
+  nextRefreshMs: 0,
+  nextRefreshAt: null,
+  sourceUrl: "",
+  sourceLabel: "",
+  stale: false,
+};
+let lockStatus = { locked: false, deadline: null };
+let maxMembers = 10;
 let editingEntryId = null;
+let isFetchingMedals = false;
+let isLoadingEntries = false;
 
 const tierConfig = buildTiers();
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("medal-source-link").href = MEDAL_SOURCE_URL;
-  document.getElementById("medal-source-link").textContent =
-    MEDAL_SOURCE_LABEL;
-
   renderTierSelects();
   renderTierReference();
   renderEntries();
@@ -236,16 +215,24 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("refresh-button")
     .addEventListener("click", handleRefreshClick);
 
+  document
+    .getElementById("admin-form")
+    .addEventListener("submit", handleAdminSubmit);
+  document
+    .getElementById("admin-unlock")
+    .addEventListener("click", handleAdminUnlock);
+
+  loadEntries();
   loadMedals();
-  setInterval(() => loadMedals(), REFRESH_INTERVAL_MS);
+
+  setInterval(loadEntries, ENTRY_REFRESH_MS);
+  setInterval(loadMedals, MEDAL_REFRESH_MS);
   setInterval(updateRefreshStatus, 60 * 1000);
 });
 
 function buildTiers() {
   const assigned = new Set([...TIER_1, ...TIER_2, ...TIER_3, ...TIER_4]);
   const tier5 = ALL_COUNTRIES.filter((country) => !assigned.has(country));
-
-  warnIfDuplicateCountries();
 
   return [
     {
@@ -279,21 +266,6 @@ function buildTiers() {
       countries: tier5.sort(),
     },
   ];
-}
-
-function warnIfDuplicateCountries() {
-  const all = [...TIER_1, ...TIER_2, ...TIER_3, ...TIER_4];
-  const seen = new Set();
-  const duplicates = [];
-  all.forEach((country) => {
-    if (seen.has(country)) {
-      duplicates.push(country);
-    }
-    seen.add(country);
-  });
-  if (duplicates.length) {
-    console.warn("Duplicate tier countries found:", duplicates);
-  }
 }
 
 function renderTierSelects() {
@@ -350,8 +322,89 @@ function renderTierReference() {
   });
 }
 
-function handleEntrySubmit(event) {
+async function loadEntries() {
+  if (isLoadingEntries) return;
+  isLoadingEntries = true;
+  try {
+    const data = await apiRequest("/api/entries");
+    entries = data.entries || [];
+    lockStatus = { locked: data.locked, deadline: data.deadline || null };
+    if (Number.isFinite(data.maxMembers)) {
+      maxMembers = data.maxMembers;
+    }
+    updateEntryCount();
+    updateLockStatusUI();
+    syncAdminDeadline();
+    renderEntries();
+    renderStandings();
+  } catch (error) {
+    console.error(error);
+    setFormMessage("Unable to load entries right now.", "error");
+  } finally {
+    isLoadingEntries = false;
+  }
+}
+
+async function loadMedals() {
+  if (isFetchingMedals) return;
+  isFetchingMedals = true;
+  updateRefreshStatus();
+  setFetchMessage("Fetching latest medal table...");
+
+  try {
+    const data = await apiRequest("/api/medals");
+    medalData = data.data || {};
+    const nextRefreshMs = data.nextRefreshMs || 0;
+    medalMeta = {
+      lastUpdated: data.lastUpdated,
+      nextRefreshMs,
+      nextRefreshAt: nextRefreshMs ? Date.now() + nextRefreshMs : null,
+      sourceUrl: data.sourceUrl || "",
+      sourceLabel: data.sourceLabel || "Medal table source",
+      stale: Boolean(data.stale),
+    };
+    updateMedalSource();
+    updateMedalDisplays();
+    setFetchMessage(
+      medalMeta.stale
+        ? "Using cached medal data (source temporarily unavailable)."
+        : "Medal table updated."
+    );
+  } catch (error) {
+    console.error(error);
+    setFetchMessage("Unable to fetch medal data right now.");
+  } finally {
+    isFetchingMedals = false;
+    updateRefreshStatus();
+  }
+}
+
+function updateMedalSource() {
+  const link = document.getElementById("medal-source-link");
+  if (!link) return;
+  if (medalMeta.sourceUrl) {
+    link.href = medalMeta.sourceUrl;
+  }
+  link.textContent = medalMeta.sourceLabel || "Medal table source";
+}
+
+function handleRefreshClick() {
+  const remaining = medalMeta.nextRefreshAt
+    ? Math.max(0, medalMeta.nextRefreshAt - Date.now())
+    : 0;
+  if (remaining > 0) {
+    setFetchMessage("Refresh available once per hour.");
+    return;
+  }
+  loadMedals();
+}
+
+async function handleEntrySubmit(event) {
   event.preventDefault();
+  if (lockStatus.locked) {
+    return setFormMessage("Entries are locked.", "error");
+  }
+
   const memberName = document.getElementById("member-name").value.trim();
   const teamName = document.getElementById("team-name").value.trim();
   const selections = getSelections();
@@ -364,47 +417,24 @@ function handleEntrySubmit(event) {
     return setFormMessage("Please select one country per tier.", "error");
   }
 
-  const entries = loadEntries();
-  const existingMember = entries.find(
-    (entry) =>
-      entry.memberName.toLowerCase() === memberName.toLowerCase() &&
-      entry.id !== editingEntryId
-  );
-  if (existingMember) {
-    return setFormMessage(
-      "That member already has an entry. Edit instead.",
-      "error"
-    );
+  try {
+    if (editingEntryId) {
+      await apiRequest(`/api/entries/${editingEntryId}`, {
+        method: "PUT",
+        body: JSON.stringify({ memberName, teamName, picks: selections }),
+      });
+    } else {
+      await apiRequest("/api/entries", {
+        method: "POST",
+        body: JSON.stringify({ memberName, teamName, picks: selections }),
+      });
+    }
+    resetForm();
+    setFormMessage("Entry saved.", "success");
+    await loadEntries();
+  } catch (error) {
+    setFormMessage(error.message || "Unable to save entry.", "error");
   }
-
-  if (!editingEntryId && entries.length >= MAX_MEMBERS) {
-    return setFormMessage(
-      `This pool is full (${MAX_MEMBERS} members).`,
-      "error"
-    );
-  }
-
-  const payload = {
-    id: editingEntryId || String(Date.now()),
-    memberName,
-    teamName,
-    picks: selections,
-    createdAt: editingEntryId
-      ? entries.find((entry) => entry.id === editingEntryId)?.createdAt ||
-        Date.now()
-      : Date.now(),
-  };
-
-  const updatedEntries = editingEntryId
-    ? entries.map((entry) => (entry.id === editingEntryId ? payload : entry))
-    : [...entries, payload];
-
-  saveEntries(updatedEntries);
-  resetForm();
-  setFormMessage("Entry saved.", "success");
-  renderEntries();
-  renderStandings();
-  updateEntryCount();
 }
 
 function getSelections() {
@@ -438,16 +468,31 @@ function setFormMessage(message, type) {
   }
 }
 
+function setLockMessage(message, type) {
+  const messageEl = document.getElementById("lock-message");
+  messageEl.textContent = message;
+  messageEl.className = "message";
+  if (type === "error") {
+    messageEl.classList.add("message--error");
+  }
+}
+
 function renderEntries() {
   const container = document.getElementById("entries-list");
-  const entries = loadEntries();
   container.innerHTML = "";
+
+  if (isLoadingEntries) {
+    const loading = document.createElement("p");
+    loading.className = "muted";
+    loading.textContent = "Loading entries...";
+    container.appendChild(loading);
+    return;
+  }
 
   if (!entries.length) {
     const empty = document.createElement("p");
     empty.className = "muted";
-    empty.textContent =
-      "No entries yet. Add up to 10 pool members above.";
+    empty.textContent = `No entries yet. Add up to ${maxMembers} pool members above.`;
     container.appendChild(empty);
     return;
   }
@@ -470,12 +515,14 @@ function renderEntries() {
     editButton.type = "button";
     editButton.className = "button--secondary";
     editButton.textContent = "Edit";
+    editButton.disabled = lockStatus.locked;
     editButton.addEventListener("click", () => editEntry(entry.id));
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className = "button--secondary";
     removeButton.textContent = "Remove";
+    removeButton.disabled = lockStatus.locked;
     removeButton.addEventListener("click", () => removeEntry(entry.id));
 
     actions.appendChild(editButton);
@@ -504,7 +551,6 @@ function renderEntries() {
 }
 
 function editEntry(entryId) {
-  const entries = loadEntries();
   const entry = entries.find((item) => item.id === entryId);
   if (!entry) return;
 
@@ -518,24 +564,27 @@ function editEntry(entryId) {
   setFormMessage("Editing entry. Save to apply changes.");
 }
 
-function removeEntry(entryId) {
-  const entries = loadEntries();
-  const filtered = entries.filter((entry) => entry.id !== entryId);
-  saveEntries(filtered);
-  renderEntries();
-  renderStandings();
-  updateEntryCount();
+async function removeEntry(entryId) {
+  if (lockStatus.locked) {
+    setFormMessage("Entries are locked.", "error");
+    return;
+  }
+
+  try {
+    await apiRequest(`/api/entries/${entryId}`, { method: "DELETE" });
+    await loadEntries();
+  } catch (error) {
+    setFormMessage(error.message || "Unable to remove entry.", "error");
+  }
 }
 
 function updateEntryCount() {
-  const count = loadEntries().length;
   const badge = document.getElementById("entry-count");
-  badge.textContent = `${count} / ${MAX_MEMBERS} entries used`;
+  badge.textContent = `${entries.length} / ${maxMembers} entries used`;
 }
 
 function renderStandings() {
   const tbody = document.querySelector("#standings-table tbody");
-  const entries = loadEntries();
   tbody.innerHTML = "";
 
   if (!entries.length) {
@@ -608,146 +657,6 @@ function calculateEntryPoints(entry) {
   }, 0);
 }
 
-function handleRefreshClick() {
-  const canFetch = canFetchMedals();
-  if (!canFetch) {
-    setFetchMessage("Refresh available once per hour.");
-    return;
-  }
-  loadMedals();
-}
-
-function canFetchMedals() {
-  const cache = loadMedalCache();
-  if (!cache) return true;
-  return Date.now() - cache.timestamp >= REFRESH_INTERVAL_MS;
-}
-
-function loadMedals() {
-  if (isFetching) return;
-
-  const cache = loadMedalCache();
-  if (cache) {
-    medalData = cache.data || {};
-    medalLastUpdated = cache.timestamp;
-    updateMedalDisplays();
-  }
-
-  if (!canFetchMedals()) {
-    updateRefreshStatus();
-    return;
-  }
-
-  isFetching = true;
-  updateRefreshStatus();
-  setFetchMessage("Fetching latest medal table...");
-
-  fetch(MEDAL_SOURCE_URL, { headers: { Accept: "text/html" } })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Request failed (${response.status})`);
-      }
-      return response.text();
-    })
-    .then((html) => {
-      const parsed = parseMedalTable(html);
-      if (!parsed) {
-        throw new Error("Unable to parse medal table.");
-      }
-      medalData = parsed;
-      medalLastUpdated = Date.now();
-      saveMedalCache({ timestamp: medalLastUpdated, data: medalData });
-      updateMedalDisplays();
-      setFetchMessage("Medal table updated.");
-    })
-    .catch((error) => {
-      console.error(error);
-      setFetchMessage("Unable to fetch medal data right now.");
-    })
-    .finally(() => {
-      isFetching = false;
-      updateRefreshStatus();
-    });
-}
-
-function parseMedalTable(html) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  const tables = Array.from(doc.querySelectorAll("table.wikitable"));
-  const medalTable = tables.find((table) => {
-    const headerText = table
-      .querySelector("tr")
-      ?.textContent.toLowerCase();
-    return (
-      headerText &&
-      headerText.includes("gold") &&
-      (headerText.includes("noc") || headerText.includes("nation"))
-    );
-  });
-
-  if (!medalTable) return null;
-
-  const rows = Array.from(medalTable.querySelectorAll("tr"));
-  const headerCells = Array.from(rows[0].querySelectorAll("th"));
-  const headers = headerCells.map((cell) =>
-    cell.textContent.trim().toLowerCase()
-  );
-
-  const indices = {
-    country: headers.findIndex(
-      (text) =>
-        text.includes("noc") || text.includes("nation") || text.includes("team")
-    ),
-    gold: headers.findIndex((text) => text.startsWith("gold")),
-    silver: headers.findIndex((text) => text.startsWith("silver")),
-    bronze: headers.findIndex((text) => text.startsWith("bronze")),
-  };
-
-  if (indices.country === -1) return null;
-
-  const data = {};
-  rows.slice(1).forEach((row) => {
-    const cells = Array.from(row.querySelectorAll("th, td"));
-    if (!cells.length) return;
-
-    const countryCell = cells[indices.country];
-    if (!countryCell) return;
-
-    const rawName =
-      countryCell.querySelector("a")?.textContent ||
-      countryCell.textContent;
-    const countryName = normalizeCountryName(rawName.trim());
-
-    if (!countryName || countryName.toLowerCase().includes("total")) return;
-
-    const gold = parseMedalValue(cells[indices.gold]?.textContent || "0");
-    const silver = parseMedalValue(cells[indices.silver]?.textContent || "0");
-    const bronze = parseMedalValue(cells[indices.bronze]?.textContent || "0");
-
-    data[countryName] = {
-      gold,
-      silver,
-      bronze,
-      points:
-        gold * POINT_VALUES.gold +
-        silver * POINT_VALUES.silver +
-        bronze * POINT_VALUES.bronze,
-    };
-  });
-
-  return data;
-}
-
-function parseMedalValue(text) {
-  const value = parseInt(text.replace(/[^\d]/g, ""), 10);
-  return Number.isFinite(value) ? value : 0;
-}
-
-function normalizeCountryName(name) {
-  if (COUNTRY_ALIASES[name]) return COUNTRY_ALIASES[name];
-  return name;
-}
-
 function updateMedalDisplays() {
   renderStandings();
   renderCountryPoints();
@@ -759,24 +668,50 @@ function updateRefreshStatus() {
   const nextRefreshEl = document.getElementById("next-refresh");
   const refreshButton = document.getElementById("refresh-button");
 
-  const cache = loadMedalCache();
-  if (cache) {
-    lastUpdatedEl.textContent = formatTimestamp(cache.timestamp);
-  } else if (medalLastUpdated) {
-    lastUpdatedEl.textContent = formatTimestamp(medalLastUpdated);
+  if (medalMeta.lastUpdated) {
+    lastUpdatedEl.textContent = formatTimestamp(medalMeta.lastUpdated);
+  } else {
+    lastUpdatedEl.textContent = "Never";
   }
 
-  const remaining = cache
-    ? Math.max(0, REFRESH_INTERVAL_MS - (Date.now() - cache.timestamp))
+  const remaining = medalMeta.nextRefreshAt
+    ? Math.max(0, medalMeta.nextRefreshAt - Date.now())
     : 0;
 
   if (remaining === 0) {
     nextRefreshEl.textContent = "Ready";
-    refreshButton.disabled = isFetching;
+    refreshButton.disabled = isFetchingMedals;
   } else {
     nextRefreshEl.textContent = formatDuration(remaining);
     refreshButton.disabled = true;
   }
+}
+
+function updateLockStatusUI() {
+  const badge = document.getElementById("lock-badge");
+  const deadlineLabel = document.getElementById("lock-deadline");
+  const locked = Boolean(lockStatus.locked);
+
+  badge.textContent = locked ? "Locked" : "Open";
+  badge.className = `badge ${locked ? "badge--danger" : "badge--success"}`;
+
+  deadlineLabel.textContent = lockStatus.deadline
+    ? `Deadline: ${formatTimestamp(lockStatus.deadline)}`
+    : "No deadline set";
+
+  setLockMessage(
+    locked ? "Entries are locked. Viewing only." : "",
+    locked ? "error" : ""
+  );
+  toggleEntryForm(!locked);
+}
+
+function toggleEntryForm(enabled) {
+  const form = document.getElementById("entry-form");
+  const controls = form.querySelectorAll("input, select, button");
+  controls.forEach((control) => {
+    control.disabled = !enabled;
+  });
 }
 
 function setFetchMessage(message) {
@@ -796,37 +731,111 @@ function formatDuration(milliseconds) {
   return `${hours}h ${remainingMinutes}m`;
 }
 
-function loadEntries() {
+async function handleAdminSubmit(event) {
+  event.preventDefault();
+  const token = document.getElementById("admin-token").value.trim();
+  const deadlineValue = document.getElementById("admin-deadline").value;
+  const lockNow = document.getElementById("admin-lock-now").checked;
+
+  if (!token) {
+    return setAdminMessage("Admin token is required.", "error");
+  }
+
+  const payload = { locked: lockNow };
+  if (deadlineValue) {
+    payload.deadline = new Date(deadlineValue).toISOString();
+  } else {
+    payload.deadline = null;
+  }
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.entries);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    await apiRequest("/api/admin/lock", {
+      method: "POST",
+      headers: { "x-admin-token": token },
+      body: JSON.stringify(payload),
+    });
+    setAdminMessage("Admin settings updated.", "success");
+    document.getElementById("admin-lock-now").checked = false;
+    await loadEntries();
   } catch (error) {
-    console.error(error);
-    return [];
+    setAdminMessage(error.message || "Unable to update admin settings.", "error");
   }
 }
 
-function saveEntries(entries) {
-  localStorage.setItem(STORAGE_KEYS.entries, JSON.stringify(entries));
-}
+async function handleAdminUnlock() {
+  const token = document.getElementById("admin-token").value.trim();
+  if (!token) {
+    return setAdminMessage("Admin token is required.", "error");
+  }
 
-function loadMedalCache() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.medals);
-    return raw ? JSON.parse(raw) : null;
+    await apiRequest("/api/admin/lock", {
+      method: "POST",
+      headers: { "x-admin-token": token },
+      body: JSON.stringify({ locked: false, deadline: null }),
+    });
+    setAdminMessage("Pool unlocked and deadline cleared.", "success");
+    await loadEntries();
   } catch (error) {
-    console.error(error);
-    return null;
+    setAdminMessage(error.message || "Unable to unlock pool.", "error");
   }
 }
 
-function saveMedalCache(cache) {
-  localStorage.setItem(STORAGE_KEYS.medals, JSON.stringify(cache));
+function setAdminMessage(message, type) {
+  const messageEl = document.getElementById("admin-message");
+  messageEl.textContent = message;
+  messageEl.className = "message";
+  if (type === "error") {
+    messageEl.classList.add("message--error");
+  }
+  if (type === "success") {
+    messageEl.classList.add("message--success");
+  }
+}
+
+function syncAdminDeadline() {
+  const input = document.getElementById("admin-deadline");
+  if (!input || document.activeElement === input) return;
+  if (!lockStatus.deadline) {
+    input.value = "";
+    return;
+  }
+  input.value = toLocalDatetimeValue(lockStatus.deadline);
+}
+
+function toLocalDatetimeValue(isoString) {
+  const date = new Date(isoString);
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+async function apiRequest(path, options = {}) {
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  };
+
+  const response = await fetch(`${API_BASE}${path}`, config);
+  let data = {};
+  try {
+    data = await response.json();
+  } catch (error) {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Request failed.");
+  }
+  return data;
 }
 
 function escapeHTML(value) {
-  return value
+  return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

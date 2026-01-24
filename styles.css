@@ -24,6 +24,17 @@ a {
   margin: 0 auto;
 }
 
+.hero__actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero--compact {
+  padding: 32px 16px;
+}
+
 main {
   max-width: 1100px;
   margin: -32px auto 48px;
@@ -58,6 +69,23 @@ main {
   font-weight: 600;
 }
 
+.badge--success {
+  background: #e6f9ef;
+  color: #166534;
+}
+
+.badge--danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.lock-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .muted {
   color: #5e6a86;
   font-size: 14px;
@@ -87,6 +115,25 @@ button {
   cursor: pointer;
 }
 
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  background: #1f5ef7;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.button--ghost {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
 button:disabled {
   background: #93a9e8;
   cursor: not-allowed;
@@ -102,6 +149,18 @@ label {
   flex-direction: column;
   gap: 6px;
   font-size: 14px;
+}
+
+.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
 }
 
 input,
@@ -230,6 +289,13 @@ select {
   padding: 24px 16px 40px;
   color: #5e6a86;
   font-size: 14px;
+}
+
+code {
+  background: #eef2ff;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 13px;
 }
 
 @media (max-width: 640px) {

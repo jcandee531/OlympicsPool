@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Winter Olympics Medal Pool Leaderboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero hero--compact">
+      <div class="hero__content">
+        <h1>Pool Leaderboard</h1>
+        <p>Live standings and entries for the 2026 Winter Olympics pool.</p>
+        <div class="hero__actions">
+          <a class="button button--ghost" href="index.html">Back to entry</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="card__header">
+          <h2>Medal data</h2>
+          <span class="badge">Auto-refresh</span>
+        </div>
+        <p class="muted">
+          Source:
+          <a id="medal-source-link" href="#" target="_blank" rel="noreferrer">
+            Medal table source
+          </a>
+        </p>
+        <div class="status-row">
+          <div class="status">
+            <div>
+              Last updated: <span id="last-updated">Never</span>
+            </div>
+            <div>
+              Next refresh: <span id="next-refresh">Ready</span>
+            </div>
+            <div id="fetch-message" class="muted"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Pool standings</h2>
+          <div class="lock-status">
+            <span id="lock-badge" class="badge badge--success">Open</span>
+            <span id="lock-deadline" class="muted">No deadline set</span>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="table" id="standings-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Member</th>
+                <th>Team</th>
+                <th>Points</th>
+                <th>Countries</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Entries</h2>
+          <span class="badge" id="entry-count">0 entries</span>
+        </div>
+        <div id="entries-list" class="entries"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Leaderboard auto-refreshes every 30 seconds.</p>
+    </footer>
+
+    <script src="leaderboard.js"></script>
+  </body>
+</html>

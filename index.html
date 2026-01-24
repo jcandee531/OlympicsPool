@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>2026 Winter Olympics Medal Pool</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__content">
+        <h1>2026 Winter Olympics Medal Pool</h1>
+        <p>
+          Build a team by selecting one country from each tier. Track standings
+          as medal counts update hourly.
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="card__header">
+          <h2>Medal data</h2>
+          <span class="badge">Refresh limit: hourly</span>
+        </div>
+        <p class="muted">
+          Source:
+          <a id="medal-source-link" href="#" target="_blank" rel="noreferrer">
+            Wikipedia medal table
+          </a>
+          (update the URL to 2026 once live results are available).
+        </p>
+        <div class="status-row">
+          <button id="refresh-button" type="button">Refresh medals</button>
+          <div class="status">
+            <div>
+              Last updated: <span id="last-updated">Never</span>
+            </div>
+            <div>
+              Next refresh: <span id="next-refresh">Ready</span>
+            </div>
+            <div id="fetch-message" class="muted"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Create your entry</h2>
+          <span class="badge" id="entry-count">0 / 10 entries used</span>
+        </div>
+        <form id="entry-form">
+          <div class="grid grid--two">
+            <label>
+              Member name
+              <input id="member-name" name="memberName" required />
+            </label>
+            <label>
+              Team name
+              <input id="team-name" name="teamName" required />
+            </label>
+          </div>
+
+          <div id="tier-selects" class="grid grid--five"></div>
+
+          <div class="form-actions">
+            <button type="submit" id="save-entry">Save entry</button>
+            <button type="button" id="reset-form" class="button--secondary">
+              Clear
+            </button>
+          </div>
+          <div id="form-message" class="message"></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Pool standings</h2>
+          <span class="badge">Gold 3 • Silver 2 • Bronze 1</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="table" id="standings-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Member</th>
+                <th>Team</th>
+                <th>Points</th>
+                <th>Countries</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Entries</h2>
+          <span class="badge">Max 10 members</span>
+        </div>
+        <div id="entries-list" class="entries"></div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Country points</h2>
+          <span class="badge">Auto-calculated</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="table" id="countries-table">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Gold</th>
+                <th>Silver</th>
+                <th>Bronze</th>
+                <th>Points</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Tier reference</h2>
+          <span class="badge">One pick per tier</span>
+        </div>
+        <div id="tiers-list" class="tiers"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Tip: share this file via any static host (GitHub Pages, Netlify) to let
+        the whole pool access the same experience.
+      </p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

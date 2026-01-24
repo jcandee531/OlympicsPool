@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
-const DATA_DIR = path.join(__dirname, ".data");
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, ".data");
 const DATA_FILE = path.join(DATA_DIR, "pool.json");
 
 const MAX_MEMBERS = 10;

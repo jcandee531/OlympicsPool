@@ -7,6 +7,7 @@ const cheerio = require("cheerio");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+const FORCE_HTTPS = process.env.FORCE_HTTPS === "true";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, ".data");
 const DATA_FILE = path.join(DATA_DIR, "pool.json");
@@ -34,6 +35,14 @@ const COUNTRY_ALIASES = {
 };
 
 const TIER_IDS = ["tier-1", "tier-2", "tier-3", "tier-4", "tier-5"];
+
+app.set("trust proxy", 1);
+app.use((req, res, next) => {
+  if (FORCE_HTTPS && req.header("x-forwarded-proto") !== "https") {
+    return res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+  }
+  return next();
+});
 
 app.use(express.json({ limit: "200kb" }));
 app.use(express.static(__dirname, { extensions: ["html"] }));

@@ -8,6 +8,8 @@ services:
     envVars:
       - key: ADMIN_TOKEN
         generateValue: true
+      - key: FORCE_HTTPS
+        value: "true"
       - key: DATA_DIR
         value: /var/data
     disk:

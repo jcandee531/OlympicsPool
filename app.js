@@ -668,9 +668,10 @@ function editEntry(entryId) {
   editingEntryId = entryId;
   document.getElementById("member-name").value = entry.memberName;
   document.getElementById("team-name").value = entry.teamName;
+  const picks = entry.picks || {};
   tierConfig.forEach((tier) => {
     const select = document.querySelector(`select[data-tier-id="${tier.id}"]`);
-    select.value = entry.picks[tier.id] || "";
+    select.value = picks[tier.id] || "";
   });
   setFormMessage("Editing entry. Save to apply changes.");
 }

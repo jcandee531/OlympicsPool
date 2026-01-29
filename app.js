@@ -300,6 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderStandings();
   renderCountryPoints();
   updateEntryCount();
+  initThemeToggle();
 
   document
     .getElementById("entry-form")
@@ -627,7 +628,7 @@ function renderEntries() {
     const meta = document.createElement("div");
     meta.className = "entry-meta";
     const totalPoints = calculateEntryPoints(entry);
-    meta.textContent = `Points: ${totalPoints}`;
+    meta.textContent = `🏅 Points: ${totalPoints}`;
 
     const picks = document.createElement("div");
     picks.className = "entry-picks";
@@ -951,6 +952,44 @@ async function apiRequest(path, options = {}) {
     throw new Error(data.error || "Request failed.");
   }
   return data;
+}
+
+function initThemeToggle() {
+  const toggle = document.getElementById("theme-toggle");
+  if (!toggle) return;
+
+  const stored = localStorage.getItem("pool-theme");
+  let currentTheme = stored || "system";
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+  const resolveTheme = (theme) =>
+    theme === "system" ? (media.matches ? "dark" : "light") : theme;
+
+  const applyTheme = (theme) => {
+    currentTheme = theme;
+    const resolved = resolveTheme(theme);
+    document.documentElement.setAttribute("data-theme", resolved);
+    toggle.textContent =
+      resolved === "dark" ? "☀️ Light mode" : "🌙 Dark mode";
+    if (theme === "system") {
+      localStorage.removeItem("pool-theme");
+    } else {
+      localStorage.setItem("pool-theme", theme);
+    }
+  };
+
+  toggle.addEventListener("click", () => {
+    const next = resolveTheme(currentTheme) === "dark" ? "light" : "dark";
+    applyTheme(next);
+  });
+
+  media.addEventListener("change", () => {
+    if (!localStorage.getItem("pool-theme")) {
+      applyTheme("system");
+    }
+  });
+
+  applyTheme(currentTheme);
 }
 
 function escapeHTML(value) {

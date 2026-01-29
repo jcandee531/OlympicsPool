@@ -128,39 +128,41 @@
         <div id="entries-list" class="entries"></div>
       </section>
 
-      <section class="card">
-        <div class="card__header">
+      <details class="card card--collapsible" id="admin-section">
+        <summary class="card__header">
           <h2>Admin controls</h2>
           <span class="badge">Requires admin token</span>
+        </summary>
+        <div class="card__body">
+          <form id="admin-form">
+            <div class="grid grid--two">
+              <label>
+                Admin token
+                <input id="admin-token" type="password" autocomplete="off" />
+              </label>
+              <label>
+                Entry deadline
+                <input id="admin-deadline" type="datetime-local" />
+              </label>
+            </div>
+            <label class="checkbox">
+              <input id="admin-lock-now" type="checkbox" />
+              Lock immediately (also locks automatically after deadline)
+            </label>
+            <div class="form-actions">
+              <button type="submit">Update lock settings</button>
+              <button
+                type="button"
+                id="admin-unlock"
+                class="button--secondary"
+              >
+                Unlock &amp; clear deadline
+              </button>
+            </div>
+            <div id="admin-message" class="message"></div>
+          </form>
         </div>
-        <form id="admin-form">
-          <div class="grid grid--two">
-            <label>
-              Admin token
-              <input id="admin-token" type="password" autocomplete="off" />
-            </label>
-            <label>
-              Entry deadline
-              <input id="admin-deadline" type="datetime-local" />
-            </label>
-          </div>
-          <label class="checkbox">
-            <input id="admin-lock-now" type="checkbox" />
-            Lock immediately (also locks automatically after deadline)
-          </label>
-          <div class="form-actions">
-            <button type="submit">Update lock settings</button>
-            <button
-              type="button"
-              id="admin-unlock"
-              class="button--secondary"
-            >
-              Unlock &amp; clear deadline
-            </button>
-          </div>
-          <div id="admin-message" class="message"></div>
-        </form>
-      </section>
+      </details>
 
       <section class="card">
         <div class="card__header">

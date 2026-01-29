@@ -106,6 +106,13 @@ const COUNTRY_CODES = {
   "Virgin Islands": "vi",
 };
 
+const FLAG_CDN_BASE = "https://flagcdn.com";
+const OLYMPIC_FLAG_URL =
+  "https://upload.wikimedia.org/wikipedia/commons/5/5c/Olympic_flag.svg";
+const FALLBACK_FLAG_SVG = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 18"><rect width="24" height="18" rx="3" fill="#e2e8f0"/><path d="M0 6h24v6H0z" fill="#cbd5f5"/></svg>'
+)}`;
+
 let entries = [];
 let medalData = {};
 let medalMeta = {
@@ -188,9 +195,10 @@ function renderEntries() {
     header.className = "entry-card__header";
 
     const title = document.createElement("div");
-    title.innerHTML = `<strong>${escapeHTML(
-      entry.memberName
-    )}</strong> • ${escapeHTML(entry.teamName)}`;
+    const nameStrong = document.createElement("strong");
+    nameStrong.textContent = entry.memberName;
+    title.appendChild(nameStrong);
+    title.appendChild(document.createTextNode(` • ${entry.teamName}`));
 
     const meta = document.createElement("div");
     meta.className = "entry-meta";
@@ -203,9 +211,9 @@ function renderEntries() {
       const country = entry.picks?.[tier];
       if (!country) return;
       const row = document.createElement("div");
-      row.textContent = `${TIER_LABELS[tier] || tier}: ${formatCountryLabel(
-        country
-      )}`;
+      row.className = "entry-pick";
+      row.appendChild(document.createTextNode(`${TIER_LABELS[tier] || tier}: `));
+      row.appendChild(createCountryLabel(country));
       picks.appendChild(row);
     });
 
@@ -244,17 +252,16 @@ function renderStandings() {
 
   standings.forEach((entry, index) => {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${escapeHTML(entry.memberName)}</td>
-      <td>${escapeHTML(entry.teamName)}</td>
-      <td>${entry.points}</td>
-      <td>${escapeHTML(
-        Object.values(entry.picks)
-          .map((country) => formatCountryLabel(country))
-          .join(", ")
-      )}</td>
-    `;
+    row.appendChild(createCell(index + 1));
+    row.appendChild(createCell(entry.memberName));
+    row.appendChild(createCell(entry.teamName));
+    row.appendChild(createCell(entry.points));
+
+    const countriesCell = document.createElement("td");
+    countriesCell.appendChild(
+      createCountryList(getEntryPicksInOrder(entry))
+    );
+    row.appendChild(countriesCell);
     tbody.appendChild(row);
   });
 }
@@ -319,22 +326,51 @@ function setFetchMessage(message) {
   el.textContent = message;
 }
 
-function formatCountryLabel(country) {
-  const flag = getFlagEmoji(country);
-  return flag ? `${flag} ${country}` : country;
+function getEntryPicksInOrder(entry) {
+  return TIER_ORDER.map((tier) => entry.picks?.[tier]).filter(Boolean);
 }
 
-function getFlagEmoji(country) {
+function createCell(value) {
+  const cell = document.createElement("td");
+  cell.textContent = value;
+  return cell;
+}
+
+function createCountryList(countries) {
+  const list = document.createElement("div");
+  list.className = "country-list";
+  countries.forEach((country) => {
+    list.appendChild(createCountryLabel(country));
+  });
+  return list;
+}
+
+function createCountryLabel(country) {
+  const wrapper = document.createElement("span");
+  wrapper.className = "country-label";
+  wrapper.appendChild(createFlagImage(country));
+  const name = document.createElement("span");
+  name.textContent = country;
+  wrapper.appendChild(name);
+  return wrapper;
+}
+
+function createFlagImage(country) {
+  const img = document.createElement("img");
+  img.className = "flag-icon";
+  img.alt = `${country} flag`;
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.referrerPolicy = "no-referrer";
+  img.src = getFlagUrl(country);
+  return img;
+}
+
+function getFlagUrl(country) {
+  if (country === "ROC") return OLYMPIC_FLAG_URL;
   const code = COUNTRY_CODES[country];
-  if (!code) return "🏳️";
-  return isoToFlagEmoji(code);
-}
-
-function isoToFlagEmoji(code) {
-  if (!code || code.length !== 2) return "";
-  return code
-    .toUpperCase()
-    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
+  if (code) return `${FLAG_CDN_BASE}/${code}.svg`;
+  return FALLBACK_FLAG_SVG;
 }
 
 function formatTimestamp(timestamp) {

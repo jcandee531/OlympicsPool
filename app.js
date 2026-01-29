@@ -190,6 +190,13 @@ const COUNTRY_CODES = {
   "Virgin Islands": "vi",
 };
 
+const FLAG_CDN_BASE = "https://flagcdn.com";
+const OLYMPIC_FLAG_URL =
+  "https://upload.wikimedia.org/wikipedia/commons/5/5c/Olympic_flag.svg";
+const FALLBACK_FLAG_SVG = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 18"><rect width="24" height="18" rx="3" fill="#e2e8f0"/><path d="M0 6h24v6H0z" fill="#cbd5f5"/></svg>'
+)}`;
+
 const TIER_1 = [
   "Norway",
   "Germany",
@@ -382,7 +389,7 @@ function renderTierSelects() {
     tier.countries.forEach((country) => {
       const option = document.createElement("option");
       option.value = country;
-      option.textContent = formatCountryLabel(country);
+      option.textContent = country;
       select.appendChild(option);
     });
 
@@ -406,7 +413,7 @@ function renderTierReference() {
     const list = document.createElement("ul");
     tier.countries.forEach((country) => {
       const item = document.createElement("li");
-      item.textContent = formatCountryLabel(country);
+      item.appendChild(createCountryLabel(country));
       list.appendChild(item);
     });
 
@@ -600,9 +607,10 @@ function renderEntries() {
     header.className = "entry-card__header";
 
     const title = document.createElement("div");
-    title.innerHTML = `<strong>${escapeHTML(
-      entry.memberName
-    )}</strong> • ${escapeHTML(entry.teamName)}`;
+    const nameStrong = document.createElement("strong");
+    nameStrong.textContent = entry.memberName;
+    title.appendChild(nameStrong);
+    title.appendChild(document.createTextNode(` • ${entry.teamName}`));
 
     const actions = document.createElement("div");
     actions.className = "entry-actions";
@@ -634,10 +642,14 @@ function renderEntries() {
     picks.className = "entry-picks";
     tierConfig.forEach((tier) => {
       const row = document.createElement("div");
+      row.className = "entry-pick";
       const pick = entry.picks[tier.id];
-      row.textContent = `${tier.label}: ${
-        pick ? formatCountryLabel(pick) : "-"
-      }`;
+      row.appendChild(document.createTextNode(`${tier.label}: `));
+      if (pick) {
+        row.appendChild(createCountryLabel(pick));
+      } else {
+        row.appendChild(document.createTextNode("-"));
+      }
       picks.appendChild(row);
     });
 
@@ -708,17 +720,16 @@ function renderStandings() {
 
   standings.forEach((entry, index) => {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${escapeHTML(entry.memberName)}</td>
-      <td>${escapeHTML(entry.teamName)}</td>
-      <td>${entry.points}</td>
-      <td>${escapeHTML(
-        Object.values(entry.picks)
-          .map((country) => formatCountryLabel(country))
-          .join(", ")
-      )}</td>
-    `;
+    row.appendChild(createCell(index + 1));
+    row.appendChild(createCell(entry.memberName));
+    row.appendChild(createCell(entry.teamName));
+    row.appendChild(createCell(entry.points));
+
+    const countriesCell = document.createElement("td");
+    const countries = getEntryPicksInOrder(entry);
+    countriesCell.appendChild(createCountryList(countries));
+    row.appendChild(countriesCell);
+
     tbody.appendChild(row);
   });
 }
@@ -742,13 +753,13 @@ function renderCountryPoints() {
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHTML(formatCountryLabel(row.country))}</td>
-      <td>${row.gold}</td>
-      <td>${row.silver}</td>
-      <td>${row.bronze}</td>
-      <td>${row.points}</td>
-    `;
+    const countryCell = document.createElement("td");
+    countryCell.appendChild(createCountryLabel(row.country));
+    tr.appendChild(countryCell);
+    tr.appendChild(createCell(row.gold));
+    tr.appendChild(createCell(row.silver));
+    tr.appendChild(createCell(row.bronze));
+    tr.appendChild(createCell(row.points));
     tbody.appendChild(tr);
   });
 }
@@ -913,22 +924,53 @@ function toLocalDatetimeValue(isoString) {
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function formatCountryLabel(country) {
-  const flag = getFlagEmoji(country);
-  return flag ? `${flag} ${country}` : country;
+function getEntryPicksInOrder(entry) {
+  return tierConfig
+    .map((tier) => entry.picks[tier.id])
+    .filter((country) => Boolean(country));
 }
 
-function getFlagEmoji(country) {
+function createCell(value) {
+  const cell = document.createElement("td");
+  cell.textContent = value;
+  return cell;
+}
+
+function createCountryList(countries) {
+  const list = document.createElement("div");
+  list.className = "country-list";
+  countries.forEach((country) => {
+    list.appendChild(createCountryLabel(country));
+  });
+  return list;
+}
+
+function createCountryLabel(country) {
+  const wrapper = document.createElement("span");
+  wrapper.className = "country-label";
+  wrapper.appendChild(createFlagImage(country));
+  const name = document.createElement("span");
+  name.textContent = country;
+  wrapper.appendChild(name);
+  return wrapper;
+}
+
+function createFlagImage(country) {
+  const img = document.createElement("img");
+  img.className = "flag-icon";
+  img.alt = `${country} flag`;
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.referrerPolicy = "no-referrer";
+  img.src = getFlagUrl(country);
+  return img;
+}
+
+function getFlagUrl(country) {
+  if (country === "ROC") return OLYMPIC_FLAG_URL;
   const code = COUNTRY_CODES[country];
-  if (!code) return "🏳️";
-  return isoToFlagEmoji(code);
-}
-
-function isoToFlagEmoji(code) {
-  if (!code || code.length !== 2) return "";
-  return code
-    .toUpperCase()
-    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
+  if (code) return `${FLAG_CDN_BASE}/${code}.svg`;
+  return FALLBACK_FLAG_SVG;
 }
 
 async function apiRequest(path, options = {}) {

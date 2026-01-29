@@ -92,6 +92,24 @@ a:hover {
   flex-wrap: wrap;
 }
 
+.hero__banner {
+  margin-top: 20px;
+  max-width: 780px;
+  width: 100%;
+  border-radius: 18px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.2);
+}
+
+.hero__banner img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 14px;
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -528,6 +546,10 @@ code {
   .hero__actions button {
     width: 100%;
     justify-content: center;
+  }
+
+  .hero__banner {
+    padding: 8px;
   }
 
   .table th,

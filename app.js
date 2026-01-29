@@ -644,7 +644,7 @@ function renderEntries() {
     tierConfig.forEach((tier) => {
       const row = document.createElement("div");
       row.className = "entry-pick";
-      const pick = entry.picks[tier.id];
+      const pick = entry.picks?.[tier.id];
       row.appendChild(document.createTextNode(`${tier.label}: `));
       if (pick) {
         row.appendChild(createCountryLabel(pick));
@@ -728,7 +728,11 @@ function renderStandings() {
 
     const countriesCell = document.createElement("td");
     const countries = getEntryPicksInOrder(entry);
-    countriesCell.appendChild(createCountryList(countries));
+    if (countries.length) {
+      countriesCell.appendChild(createCountryList(countries));
+    } else {
+      countriesCell.textContent = "-";
+    }
     row.appendChild(countriesCell);
 
     tbody.appendChild(row);
@@ -766,7 +770,8 @@ function renderCountryPoints() {
 }
 
 function calculateEntryPoints(entry) {
-  return Object.values(entry.picks).reduce((total, country) => {
+  const picks = entry.picks || {};
+  return Object.values(picks).reduce((total, country) => {
     return total + (medalData[country]?.points || 0);
   }, 0);
 }
@@ -926,8 +931,9 @@ function toLocalDatetimeValue(isoString) {
 }
 
 function getEntryPicksInOrder(entry) {
+  const picks = entry.picks || {};
   return tierConfig
-    .map((tier) => entry.picks[tier.id])
+    .map((tier) => picks[tier.id])
     .filter((country) => Boolean(country));
 }
 

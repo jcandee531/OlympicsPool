@@ -427,6 +427,7 @@ function renderTierReference() {
 async function loadEntries() {
   if (isLoadingEntries) return;
   isLoadingEntries = true;
+  renderEntries();
   try {
     const data = await apiRequest("/api/entries");
     entries = data.entries || [];
@@ -437,13 +438,13 @@ async function loadEntries() {
     updateEntryCount();
     updateLockStatusUI();
     syncAdminDeadline();
-    renderEntries();
-    renderStandings();
   } catch (error) {
     console.error(error);
     setFormMessage("Unable to load entries right now.", "error");
   } finally {
     isLoadingEntries = false;
+    renderEntries();
+    renderStandings();
   }
 }
 

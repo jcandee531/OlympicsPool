@@ -264,7 +264,7 @@ async function loadData() {
   try {
     const raw = await fs.readFile(DATA_FILE, "utf-8");
     const parsed = JSON.parse(raw);
-    return {
+    const data = {
       ...defaultData(),
       ...parsed,
       config: { ...defaultData().config, ...(parsed.config || {}) },
@@ -273,11 +273,15 @@ async function loadData() {
         ...(parsed.medalsCache || {}),
       },
     };
+    normalizeMedalCache(data);
+    return data;
   } catch (error) {
     if (error.code !== "ENOENT") {
       console.error(error);
     }
-    return defaultData();
+    const data = defaultData();
+    normalizeMedalCache(data);
+    return data;
   }
 }
 
@@ -295,6 +299,21 @@ function applyAutoLock(data) {
     }
   }
   return { locked: data.config.locked, deadline: data.config.deadline };
+}
+
+function normalizeMedalCache(data) {
+  if (!data.medalsCache) data.medalsCache = {};
+  const cache = data.medalsCache;
+  const sourceChanged =
+    cache.sourceUrl && cache.sourceUrl !== MEDAL_SOURCE_URL;
+
+  if (sourceChanged) {
+    cache.data = null;
+    cache.timestamp = null;
+  }
+
+  cache.sourceUrl = MEDAL_SOURCE_URL;
+  cache.sourceLabel = MEDAL_SOURCE_LABEL;
 }
 
 function validateEntryPayload(body) {

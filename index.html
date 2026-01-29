@@ -28,43 +28,6 @@
     <main>
       <section class="card">
         <div class="card__header">
-          <h2>Medal data</h2>
-          <span class="badge">Refresh limit: hourly</span>
-        </div>
-        <p class="muted">
-          Source:
-          <a id="medal-source-link" href="#" target="_blank" rel="noreferrer">
-            Wikipedia medal table
-          </a>
-          (server fetches this source hourly from the 2026 medal table).
-        </p>
-        <div class="meta-links">
-          <span class="muted">Previous games:</span>
-          <a
-            class="url-link"
-            href="https://en.wikipedia.org/wiki/2022_Winter_Olympics_medal_table"
-            target="_blank"
-            rel="noreferrer"
-          >
-            https://en.wikipedia.org/wiki/2022_Winter_Olympics_medal_table
-          </a>
-        </div>
-        <div class="status-row">
-          <button id="refresh-button" type="button">Refresh medals</button>
-          <div class="status">
-            <div>
-              Last updated: <span id="last-updated">Never</span>
-            </div>
-            <div>
-              Next refresh: <span id="next-refresh">Ready</span>
-            </div>
-            <div id="fetch-message" class="muted"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card__header">
           <div>
             <h2>Create your entry</h2>
             <div class="lock-status">
@@ -155,6 +118,43 @@
           <span class="badge">One pick per tier</span>
         </div>
         <div id="tiers-list" class="tiers"></div>
+      </section>
+
+      <section class="card">
+        <div class="card__header">
+          <h2>Medal data</h2>
+          <span class="badge">Refresh limit: hourly</span>
+        </div>
+        <p class="muted">
+          Source:
+          <a id="medal-source-link" href="#" target="_blank" rel="noreferrer">
+            Wikipedia medal table
+          </a>
+          (server fetches this source hourly from the 2026 medal table).
+        </p>
+        <div class="meta-links">
+          <span class="muted">Previous games:</span>
+          <a
+            class="url-link"
+            href="https://en.wikipedia.org/wiki/2022_Winter_Olympics_medal_table"
+            target="_blank"
+            rel="noreferrer"
+          >
+            https://en.wikipedia.org/wiki/2022_Winter_Olympics_medal_table
+          </a>
+        </div>
+        <div class="status-row">
+          <button id="refresh-button" type="button">Refresh medals</button>
+          <div class="status">
+            <div>
+              Last updated: <span id="last-updated">Never</span>
+            </div>
+            <div>
+              Next refresh: <span id="next-refresh">Ready</span>
+            </div>
+            <div id="fetch-message" class="muted"></div>
+          </div>
+        </div>
       </section>
 
       <details class="card card--collapsible" id="admin-section">

@@ -66,5 +66,4 @@ FORCE_HTTPS=false npm start
 ## Medal data
 
 The server fetches medal totals from Wikipedia once per hour and caches the
-results. Update the medal source URL in `server.js` when 2026 standings become
-available.
+results using the 2026 Winter Olympics medal table REST endpoint.

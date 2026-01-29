@@ -16,9 +16,9 @@ const MAX_MEMBERS = 10;
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 const MEDAL_SOURCE_URL =
-  "https://en.wikipedia.org/api/rest_v1/page/html/2022_Winter_Olympics_medal_table";
+  "https://en.wikipedia.org/api/rest_v1/page/html/2026_Winter_Olympics_medal_table";
 const MEDAL_SOURCE_LABEL =
-  "Wikipedia 2022 Winter Olympics medal table (REST API)";
+  "Wikipedia 2026 Winter Olympics medal table (REST API)";
 
 const COUNTRY_ALIASES = {
   "People's Republic of China": "China",

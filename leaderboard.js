@@ -10,6 +10,102 @@ const TIER_LABELS = {
   "tier-5": "Tier 5",
 };
 
+const TIER_ORDER = ["tier-1", "tier-2", "tier-3", "tier-4", "tier-5"];
+
+const COUNTRY_CODES = {
+  Albania: "al",
+  "American Samoa": "as",
+  Andorra: "ad",
+  Argentina: "ar",
+  Armenia: "am",
+  Australia: "au",
+  Austria: "at",
+  Azerbaijan: "az",
+  Belarus: "by",
+  Belgium: "be",
+  Bolivia: "bo",
+  "Bosnia and Herzegovina": "ba",
+  Brazil: "br",
+  Bulgaria: "bg",
+  Canada: "ca",
+  Chile: "cl",
+  China: "cn",
+  "Chinese Taipei": "tw",
+  Colombia: "co",
+  Croatia: "hr",
+  Cyprus: "cy",
+  "Czech Republic": "cz",
+  Denmark: "dk",
+  Ecuador: "ec",
+  Eritrea: "er",
+  Estonia: "ee",
+  Finland: "fi",
+  France: "fr",
+  Georgia: "ge",
+  Germany: "de",
+  Ghana: "gh",
+  "Great Britain": "gb",
+  Greece: "gr",
+  Haiti: "ht",
+  "Hong Kong": "hk",
+  Hungary: "hu",
+  Iceland: "is",
+  India: "in",
+  Iran: "ir",
+  Ireland: "ie",
+  Israel: "il",
+  Italy: "it",
+  Jamaica: "jm",
+  Japan: "jp",
+  Kazakhstan: "kz",
+  Kosovo: "xk",
+  Kyrgyzstan: "kg",
+  Latvia: "lv",
+  Lebanon: "lb",
+  Liechtenstein: "li",
+  Lithuania: "lt",
+  Luxembourg: "lu",
+  Madagascar: "mg",
+  Malaysia: "my",
+  Malta: "mt",
+  Mexico: "mx",
+  Moldova: "md",
+  Monaco: "mc",
+  Mongolia: "mn",
+  Montenegro: "me",
+  Morocco: "ma",
+  Netherlands: "nl",
+  "New Zealand": "nz",
+  Nigeria: "ng",
+  "North Macedonia": "mk",
+  Norway: "no",
+  Pakistan: "pk",
+  Peru: "pe",
+  Philippines: "ph",
+  Poland: "pl",
+  Portugal: "pt",
+  "Puerto Rico": "pr",
+  ROC: "",
+  Romania: "ro",
+  "San Marino": "sm",
+  "Saudi Arabia": "sa",
+  Serbia: "rs",
+  Slovakia: "sk",
+  Slovenia: "si",
+  "South Korea": "kr",
+  Spain: "es",
+  Sweden: "se",
+  Switzerland: "ch",
+  Thailand: "th",
+  "Timor-Leste": "tl",
+  "Trinidad and Tobago": "tt",
+  Turkey: "tr",
+  Ukraine: "ua",
+  "United States": "us",
+  Uzbekistan: "uz",
+  "Virgin Islands": "vi",
+};
+
 let entries = [];
 let medalData = {};
 let medalMeta = {
@@ -102,9 +198,13 @@ function renderEntries() {
 
     const picks = document.createElement("div");
     picks.className = "entry-picks";
-    Object.entries(entry.picks || {}).forEach(([tier, country]) => {
+    TIER_ORDER.forEach((tier) => {
+      const country = entry.picks?.[tier];
+      if (!country) return;
       const row = document.createElement("div");
-      row.textContent = `${TIER_LABELS[tier] || tier}: ${country}`;
+      row.textContent = `${TIER_LABELS[tier] || tier}: ${formatCountryLabel(
+        country
+      )}`;
       picks.appendChild(row);
     });
 
@@ -148,7 +248,11 @@ function renderStandings() {
       <td>${escapeHTML(entry.memberName)}</td>
       <td>${escapeHTML(entry.teamName)}</td>
       <td>${entry.points}</td>
-      <td>${escapeHTML(Object.values(entry.picks).join(", "))}</td>
+      <td>${escapeHTML(
+        Object.values(entry.picks)
+          .map((country) => formatCountryLabel(country))
+          .join(", ")
+      )}</td>
     `;
     tbody.appendChild(row);
   });
@@ -212,6 +316,24 @@ function updateLockStatusUI() {
 function setFetchMessage(message) {
   const el = document.getElementById("fetch-message");
   el.textContent = message;
+}
+
+function formatCountryLabel(country) {
+  const flag = getFlagEmoji(country);
+  return flag ? `${flag} ${country}` : country;
+}
+
+function getFlagEmoji(country) {
+  const code = COUNTRY_CODES[country];
+  if (!code) return "🏳️";
+  return isoToFlagEmoji(code);
+}
+
+function isoToFlagEmoji(code) {
+  if (!code || code.length !== 2) return "";
+  return code
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
 }
 
 function formatTimestamp(timestamp) {

@@ -1,27 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --primary: #3b6ff6;
+  --primary-dark: #1f4bd6;
+  --accent: #f59e0b;
+  --bg: #ecf1ff;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #14213d;
-  background: #f5f6fa;
+  font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top, #f8faff, var(--bg));
 }
 
 a {
-  color: #1f5ef7;
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 .hero {
-  background: linear-gradient(120deg, #0b1d3a, #1f5ef7);
+  background: linear-gradient(120deg, #0f172a, #1d4ed8);
   color: #ffffff;
   padding: 48px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 55%),
+    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.4), transparent 45%);
+  opacity: 0.9;
 }
 
 .hero__content {
   max-width: 1100px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .hero__actions {
@@ -37,7 +69,7 @@ a {
 
 main {
   max-width: 1100px;
-  margin: -32px auto 48px;
+  margin: -36px auto 48px;
   padding: 0 16px;
   display: flex;
   flex-direction: column;
@@ -45,10 +77,11 @@ main {
 }
 
 .card {
-  background: #ffffff;
+  background: var(--card);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 6px 16px rgba(20, 33, 61, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: var(--shadow);
 }
 
 .card__header {
@@ -61,8 +94,8 @@ main {
 }
 
 .badge {
-  background: #e8edff;
-  color: #1f4bd6;
+  background: #e0e8ff;
+  color: var(--primary-dark);
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -87,7 +120,7 @@ main {
 }
 
 .muted {
-  color: #5e6a86;
+  color: var(--muted);
   font-size: 14px;
 }
 
@@ -105,14 +138,31 @@ main {
   font-size: 14px;
 }
 
+.meta-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.url-link {
+  color: var(--primary-dark);
+  font-size: 13px;
+  word-break: break-all;
+}
+
 button {
-  background: #1f5ef7;
+  background: var(--primary);
   color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 14px;
   cursor: pointer;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .button {
@@ -120,12 +170,14 @@ button {
   align-items: center;
   gap: 6px;
   text-decoration: none;
-  background: #1f5ef7;
+  background: var(--primary);
   color: #ffffff;
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 14px;
   font-weight: 600;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .button--ghost {
@@ -137,11 +189,19 @@ button {
 button:disabled {
   background: #93a9e8;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.button:hover:not(:disabled),
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgba(37, 99, 235, 0.25);
 }
 
 .button--secondary {
   background: #edf0f7;
   color: #1c2d55;
+  box-shadow: none;
 }
 
 label {
@@ -165,10 +225,11 @@ label {
 
 input,
 select {
-  border: 1px solid #d6dbe8;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 14px;
+  background: #ffffff;
 }
 
 .grid {
@@ -222,13 +283,29 @@ select {
   border-bottom: 1px solid #e8edf7;
 }
 
+.table th {
+  font-weight: 600;
+  color: #1e293b;
+  background: #eef2ff;
+}
+
+.table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.table tbody tr:hover {
+  background: #eef2ff;
+}
+
 .entries {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .entry-card {
   border: 1px solid #e1e6f3;
+  background: #f8fafc;
   border-radius: 12px;
   padding: 14px;
   display: grid;
@@ -248,6 +325,7 @@ select {
   gap: 12px;
   flex-wrap: wrap;
   font-size: 14px;
+  color: #1e293b;
 }
 
 .entry-actions {
@@ -268,6 +346,7 @@ select {
 
 .tier-card {
   border: 1px solid #e1e6f3;
+  background: #f8fafc;
   border-radius: 12px;
   padding: 12px;
 }

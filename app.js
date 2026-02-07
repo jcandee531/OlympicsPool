@@ -1,4 +1,5 @@
 const API_BASE = "";
+const ADMIN_TOKEN_KEY = "pool-admin-token";
 const ENTRY_REFRESH_MS = 30 * 1000;
 const MEDAL_REFRESH_MS = 5 * 60 * 1000;
 
@@ -323,6 +324,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("admin-unlock")
     .addEventListener("click", handleAdminUnlock);
+  document
+    .getElementById("quick-lock")
+    .addEventListener("click", handleQuickLock);
+
+  hydrateAdminToken();
 
   loadEntries();
   loadMedals();
@@ -810,6 +816,7 @@ function updateRefreshStatus() {
 function updateLockStatusUI() {
   const badge = document.getElementById("lock-badge");
   const deadlineLabel = document.getElementById("lock-deadline");
+  const quickLock = document.getElementById("quick-lock");
   const locked = Boolean(lockStatus.locked);
 
   badge.textContent = locked ? "Locked" : "Open";
@@ -818,6 +825,11 @@ function updateLockStatusUI() {
   deadlineLabel.textContent = lockStatus.deadline
     ? `Deadline: ${formatTimestamp(lockStatus.deadline)}`
     : "No deadline set";
+
+  if (quickLock) {
+    quickLock.disabled = locked;
+    quickLock.textContent = locked ? "Locked" : "Lock now";
+  }
 
   setLockMessage(
     locked ? "Entries are locked. Viewing only." : "",
@@ -874,6 +886,7 @@ async function handleAdminSubmit(event) {
       headers: { "x-admin-token": token },
       body: JSON.stringify(payload),
     });
+    storeAdminToken(token);
     setAdminMessage("Admin settings updated.", "success");
     document.getElementById("admin-lock-now").checked = false;
     await loadEntries();
@@ -894,11 +907,61 @@ async function handleAdminUnlock() {
       headers: { "x-admin-token": token },
       body: JSON.stringify({ locked: false, deadline: null }),
     });
+    storeAdminToken(token);
     setAdminMessage("Pool unlocked and deadline cleared.", "success");
     await loadEntries();
   } catch (error) {
     setAdminMessage(error.message || "Unable to unlock pool.", "error");
   }
+}
+
+async function handleQuickLock() {
+  if (lockStatus.locked) return;
+  const token = getStoredAdminToken();
+  if (!token) {
+    setFormMessage("Enter admin token to lock entries.", "error");
+    openAdminSection();
+    return;
+  }
+  setFormMessage("Locking entries...", "success");
+  try {
+    await apiRequest("/api/admin/lock", {
+      method: "POST",
+      headers: { "x-admin-token": token },
+      body: JSON.stringify({ locked: true }),
+    });
+    await loadEntries();
+    setFormMessage("Entries locked.", "success");
+  } catch (error) {
+    setFormMessage(error.message || "Unable to lock entries.", "error");
+  }
+}
+
+function hydrateAdminToken() {
+  const stored = getStoredAdminToken();
+  if (!stored) return;
+  const input = document.getElementById("admin-token");
+  if (input) {
+    input.value = stored;
+  }
+}
+
+function storeAdminToken(token) {
+  if (!token) return;
+  localStorage.setItem(ADMIN_TOKEN_KEY, token);
+}
+
+function getStoredAdminToken() {
+  return localStorage.getItem(ADMIN_TOKEN_KEY) || "";
+}
+
+function openAdminSection() {
+  const adminSection = document.getElementById("admin-section");
+  if (!adminSection) return;
+  if (!adminSection.open) {
+    adminSection.open = true;
+  }
+  adminSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function setAdminMessage(message, type) {

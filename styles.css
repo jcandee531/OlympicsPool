@@ -330,6 +330,12 @@ button:hover:not(:disabled) {
   box-shadow: none;
 }
 
+.button--tiny {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
 [data-theme="dark"] .button--secondary {
   background: #1f2937;
   color: #e2e8f0;

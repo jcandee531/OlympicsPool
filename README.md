@@ -7,7 +7,7 @@ admin lock/deadline.
 
 ```bash
 npm install
-ADMIN_TOKEN=your-secret-token npm start
+npm start
 ```
 
 Then open <http://localhost:3000>.
@@ -19,13 +19,11 @@ Then open <http://localhost:3000>.
 
 ## Admin lock
 
-1. Set `ADMIN_TOKEN` when starting the server.
-2. Enter the token in the **Admin controls** section.
-3. Set a deadline (optional) and/or toggle **Lock immediately**.
-4. Click **Update lock settings**.
+1. Set a deadline (optional) and/or toggle **Lock the pool**.
+2. Click **Update settings**.
 
-If the deadline passes, the server automatically locks entries. Use the
-**Unlock & clear deadline** button to open entries again.
+If the deadline passes, the server automatically locks entries. Toggle the
+lock switch off to reopen entries.
 
 ## Deploy to Render
 
@@ -37,12 +35,8 @@ This repo includes a `render.yaml` blueprint.
    - Build command: `npm install`
    - Start command: `npm start`
    - Persistent disk mounted at `/var/data`
-   - `ADMIN_TOKEN` auto-generated (visible in Render env vars)
 4. After deploy, open the Render URL and use `/index.html` for entries and
    `/leaderboard.html` for the public leaderboard.
-
-To rotate the admin token, update the `ADMIN_TOKEN` environment variable in
-Render and redeploy.
 
 ## Custom domain on Render
 

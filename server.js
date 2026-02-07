@@ -6,7 +6,6 @@ const cheerio = require("cheerio");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 const FORCE_HTTPS = process.env.FORCE_HTTPS === "true";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, ".data");
@@ -201,17 +200,6 @@ app.get("/api/medals", async (_req, res) => {
 });
 
 app.post("/api/admin/lock", async (req, res) => {
-  if (!ADMIN_TOKEN) {
-    return res
-      .status(400)
-      .json({ error: "Admin token not configured on server." });
-  }
-
-  const token = req.headers["x-admin-token"] || req.query.token;
-  if (!token || token !== ADMIN_TOKEN) {
-    return res.status(401).json({ error: "Invalid admin token." });
-  }
-
   const data = await loadData();
 
   if ("locked" in req.body && typeof req.body.locked === "boolean") {

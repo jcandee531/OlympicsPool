@@ -106,6 +106,20 @@ const COUNTRY_CODES = {
   "Virgin Islands": "vi",
 };
 
+const COUNTRY_ALIASES = {
+  "People's Republic of China": "China",
+  "Republic of Korea": "South Korea",
+  Korea: "South Korea",
+  "Russian Olympic Committee": "ROC",
+  "United States of America": "United States",
+  "Great Britain and Northern Ireland": "Great Britain",
+  "Chinese Taipei (TPE)": "Chinese Taipei",
+  "Timor Leste": "Timor-Leste",
+  "Hong Kong, China": "Hong Kong",
+  "Virgin Islands, U.S.": "Virgin Islands",
+  Czechia: "Czech Republic",
+};
+
 const FLAG_CDN_BASE = "https://flagcdn.com";
 const OLYMPIC_FLAG_URL =
   "https://upload.wikimedia.org/wikipedia/commons/5/5c/Olympic_flag.svg";
@@ -115,6 +129,7 @@ const FALLBACK_FLAG_SVG = `data:image/svg+xml,${encodeURIComponent(
 
 let entries = [];
 let medalData = {};
+let medalLookup = {};
 let medalMeta = {
   lastUpdated: null,
   nextRefreshMs: 0,
@@ -268,7 +283,9 @@ function renderStandings() {
 
 function calculateEntryPoints(entry) {
   return Object.values(entry.picks || {}).reduce((total, country) => {
-    return total + (medalData[country]?.points || 0);
+    const normalized = sanitizeCountryName(country);
+    const record = medalLookup[normalized] || medalData[normalized];
+    return total + (record?.points || 0);
   }, 0);
 }
 
@@ -278,6 +295,7 @@ function updateEntryCount() {
 }
 
 function updateMedalDisplays() {
+  buildMedalLookup();
   renderStandings();
   updateRefreshStatus();
 }
@@ -348,9 +366,10 @@ function createCountryList(countries) {
 function createCountryLabel(country) {
   const wrapper = document.createElement("span");
   wrapper.className = "country-label";
-  wrapper.appendChild(createFlagImage(country));
+  const displayName = sanitizeCountryName(country) || String(country).trim();
+  wrapper.appendChild(createFlagImage(displayName));
   const name = document.createElement("span");
-  name.textContent = country;
+  name.textContent = displayName;
   wrapper.appendChild(name);
   return wrapper;
 }
@@ -367,10 +386,33 @@ function createFlagImage(country) {
 }
 
 function getFlagUrl(country) {
-  if (country === "ROC") return OLYMPIC_FLAG_URL;
-  const code = COUNTRY_CODES[country];
+  const normalized = sanitizeCountryName(country);
+  if (normalized === "ROC") return OLYMPIC_FLAG_URL;
+  const code = COUNTRY_CODES[normalized];
   if (code) return `${FLAG_CDN_BASE}/${code}.svg`;
   return FALLBACK_FLAG_SVG;
+}
+
+function buildMedalLookup() {
+  medalLookup = {};
+  Object.entries(medalData).forEach(([country, record]) => {
+    const normalized = sanitizeCountryName(country);
+    if (!normalized) return;
+    medalLookup[normalized] = record;
+  });
+}
+
+function sanitizeCountryName(name) {
+  if (!name) return "";
+  let cleaned = String(name);
+  cleaned = cleaned.replace(
+    /^[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]\s*/u,
+    ""
+  );
+  cleaned = cleaned.replace(/^[^A-Za-z0-9]+/, "");
+  cleaned = cleaned.replace(/[*\u2020\u2021]/g, "");
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+  return COUNTRY_ALIASES[cleaned] || cleaned;
 }
 
 function formatTimestamp(timestamp) {

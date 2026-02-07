@@ -13,6 +13,7 @@ const DATA_FILE = path.join(DATA_DIR, "pool.json");
 
 const MAX_MEMBERS = 10;
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+const MEDAL_CACHE_VERSION = "2026-v2";
 
 const MEDAL_SOURCE_URL =
   "https://en.wikipedia.org/api/rest_v1/page/html/2026_Winter_Olympics_medal_table";
@@ -160,13 +161,14 @@ app.get("/api/medals", async (_req, res) => {
     try {
       const html = await fetchMedalHtml();
       const parsed = parseMedalTable(html);
-      if (!parsed) {
+      if (!parsed || Object.keys(parsed).length === 0) {
         throw new Error("Unable to parse medal table.");
       }
       cache.data = parsed;
       cache.timestamp = now;
       cache.sourceUrl = MEDAL_SOURCE_URL;
       cache.sourceLabel = MEDAL_SOURCE_LABEL;
+      cache.version = MEDAL_CACHE_VERSION;
       data.medalsCache = cache;
       await saveData(data);
     } catch (error) {
@@ -243,6 +245,7 @@ function defaultData() {
       data: null,
       sourceUrl: MEDAL_SOURCE_URL,
       sourceLabel: MEDAL_SOURCE_LABEL,
+      version: MEDAL_CACHE_VERSION,
     },
   };
 }
@@ -294,14 +297,16 @@ function normalizeMedalCache(data) {
   const cache = data.medalsCache;
   const sourceChanged =
     cache.sourceUrl && cache.sourceUrl !== MEDAL_SOURCE_URL;
+  const versionChanged = cache.version !== MEDAL_CACHE_VERSION;
 
-  if (sourceChanged) {
+  if (sourceChanged || versionChanged) {
     cache.data = null;
     cache.timestamp = null;
   }
 
   cache.sourceUrl = MEDAL_SOURCE_URL;
   cache.sourceLabel = MEDAL_SOURCE_LABEL;
+  cache.version = MEDAL_CACHE_VERSION;
 }
 
 function validateEntryPayload(body) {

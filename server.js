@@ -367,51 +367,35 @@ function parseMedalTable(html) {
 
   if (!medalTable) return null;
 
-  const rows = $(medalTable).find("tr").toArray();
-  if (!rows.length) return null;
-
-  const headerCells = $(rows[0]).find("th").toArray();
-  const headers = headerCells.map((cell) =>
-    $(cell).text().trim().toLowerCase()
-  );
-
-  const indices = {
-    country: headers.findIndex(
-      (text) =>
-        text.includes("noc") || text.includes("nation") || text.includes("team")
-    ),
-    gold: headers.findIndex((text) => text.startsWith("gold")),
-    silver: headers.findIndex((text) => text.startsWith("silver")),
-    bronze: headers.findIndex((text) => text.startsWith("bronze")),
-  };
-
-  if (indices.country === -1) return null;
-
   const data = {};
-  rows.slice(1).forEach((row) => {
-    const cells = $(row).find("th, td").toArray();
-    if (!cells.length) return;
+  $(medalTable)
+    .find("tr")
+    .each((_index, row) => {
+      const countryCell = $(row).find('th[scope="row"]').first();
+      if (!countryCell.length) return;
 
-    const countryCell = cells[indices.country];
-    if (!countryCell) return;
+      const rawName =
+        countryCell.find("a").first().text() || countryCell.text();
+      const cleanedName = cleanCountryName(rawName);
+      const countryName = normalizeCountryName(cleanedName);
+      if (!countryName || countryName.toLowerCase().includes("total")) return;
 
-    const rawName =
-      $(countryCell).find("a").first().text() || $(countryCell).text();
-    const cleanedName = cleanCountryName(rawName);
-    const countryName = normalizeCountryName(cleanedName);
-    if (!countryName || countryName.toLowerCase().includes("total")) return;
+      const numericValues = $(row)
+        .find("td")
+        .toArray()
+        .map((cell) => parseMedalValue($(cell).text()));
 
-    const gold = parseMedalValue($(cells[indices.gold]).text());
-    const silver = parseMedalValue($(cells[indices.silver]).text());
-    const bronze = parseMedalValue($(cells[indices.bronze]).text());
+      if (numericValues.length < 4) return;
 
-    data[countryName] = {
-      gold,
-      silver,
-      bronze,
-      points: gold * 3 + silver * 2 + bronze * 1,
-    };
-  });
+      const [gold, silver, bronze] = numericValues.slice(-4);
+
+      data[countryName] = {
+        gold,
+        silver,
+        bronze,
+        points: gold * 3 + silver * 2 + bronze * 1,
+      };
+    });
 
   return data;
 }
@@ -424,6 +408,7 @@ function parseMedalValue(text) {
 function cleanCountryName(name) {
   return String(name)
     .replace(/\[[^\]]*]/g, "")
+    .replace(/[*\u2020\u2021]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

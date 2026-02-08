@@ -153,7 +153,10 @@ document.addEventListener("DOMContentLoaded", () => {
 async function loadEntries() {
   try {
     const data = await apiRequest("/api/entries");
-    entries = data.entries || [];
+    entries = (data.entries || []).map((entry) => ({
+      ...entry,
+      picks: normalizeEntryPicks(entry.picks),
+    }));
     lockStatus = { locked: data.locked, deadline: data.deadline || null };
     renderEntries();
     renderStandings();
@@ -283,8 +286,8 @@ function renderStandings() {
 
 function calculateEntryPoints(entry) {
   return Object.values(entry.picks || {}).reduce((total, country) => {
-    const normalized = sanitizeCountryName(country);
-    const record = medalLookup[normalized] || medalData[normalized];
+    const key = normalizeCountryKey(country);
+    const record = medalLookup[key];
     return total + (record?.points || 0);
   }, 0);
 }
@@ -366,7 +369,7 @@ function createCountryList(countries) {
 function createCountryLabel(country) {
   const wrapper = document.createElement("span");
   wrapper.className = "country-label";
-  const displayName = sanitizeCountryName(country) || String(country).trim();
+  const displayName = normalizeCountryName(country) || String(country).trim();
   wrapper.appendChild(createFlagImage(displayName));
   const name = document.createElement("span");
   name.textContent = displayName;
@@ -386,7 +389,7 @@ function createFlagImage(country) {
 }
 
 function getFlagUrl(country) {
-  const normalized = sanitizeCountryName(country);
+  const normalized = normalizeCountryName(country);
   if (normalized === "ROC") return OLYMPIC_FLAG_URL;
   const code = COUNTRY_CODES[normalized];
   if (code) return `${FLAG_CDN_BASE}/${code}.svg`;
@@ -396,13 +399,24 @@ function getFlagUrl(country) {
 function buildMedalLookup() {
   medalLookup = {};
   Object.entries(medalData).forEach(([country, record]) => {
-    const normalized = sanitizeCountryName(country);
-    if (!normalized) return;
-    medalLookup[normalized] = record;
+    const key = normalizeCountryKey(country);
+    if (!key) return;
+    medalLookup[key] = record;
   });
 }
 
-function sanitizeCountryName(name) {
+function normalizeCountryKey(name) {
+  const displayName = normalizeCountryName(name);
+  if (!displayName) return "";
+  return displayName.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeCountryName(name) {
+  const cleaned = cleanCountryLabel(name);
+  return COUNTRY_ALIASES[cleaned] || cleaned;
+}
+
+function cleanCountryLabel(name) {
   if (!name) return "";
   let cleaned = String(name);
   cleaned = cleaned.replace(
@@ -412,7 +426,16 @@ function sanitizeCountryName(name) {
   cleaned = cleaned.replace(/^[^A-Za-z0-9]+/, "");
   cleaned = cleaned.replace(/[*\u2020\u2021]/g, "");
   cleaned = cleaned.replace(/\s+/g, " ").trim();
-  return COUNTRY_ALIASES[cleaned] || cleaned;
+  return cleaned;
+}
+
+function normalizeEntryPicks(picks = {}) {
+  return Object.fromEntries(
+    Object.entries(picks).map(([tier, country]) => [
+      tier,
+      normalizeCountryName(country),
+    ])
+  );
 }
 
 function formatTimestamp(timestamp) {

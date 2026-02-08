@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: winter-olympics-medal-pool
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: FORCE_HTTPS
+        value: "true"
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: pool-data
+      mountPath: /var/data
+      sizeGB: 1

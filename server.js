@@ -201,6 +201,45 @@ app.get("/api/medals", async (_req, res) => {
   });
 });
 
+app.get("/api/debug/standings", async (_req, res) => {
+  const data = await loadData();
+  const cache = data.medalsCache || {};
+  const medalData = cache.data || {};
+  const medalLookup = buildMedalLookup(medalData);
+
+  const entries = data.entries || [];
+  const standings = entries.map((entry) => {
+    const picks = entry.picks || {};
+    const pickList = Object.entries(picks).map(([tier, country]) => {
+      const normalized = normalizeCountryName(country);
+      const key = normalizeCountryKey(normalized);
+      const record = medalLookup[key] || {};
+      return {
+        tier,
+        country,
+        normalized,
+        key,
+        points: record.points || 0,
+      };
+    });
+
+    const totalPoints = pickList.reduce((sum, pick) => sum + pick.points, 0);
+
+    return {
+      id: entry.id,
+      memberName: entry.memberName,
+      teamName: entry.teamName,
+      totalPoints,
+      pickList,
+    };
+  });
+
+  res.json({
+    medalCount: Object.keys(medalData).length,
+    standings,
+  });
+});
+
 app.post("/api/admin/lock", async (req, res) => {
   const data = await loadData();
 
@@ -420,4 +459,20 @@ function cleanCountryName(name) {
 
 function normalizeCountryName(name) {
   return COUNTRY_ALIASES[name] || name;
+}
+
+function normalizeCountryKey(name) {
+  if (!name) return "";
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function buildMedalLookup(medalData) {
+  const lookup = {};
+  Object.entries(medalData || {}).forEach(([country, record]) => {
+    const normalized = normalizeCountryName(cleanCountryName(country));
+    const key = normalizeCountryKey(normalized);
+    if (!key) return;
+    lookup[key] = record;
+  });
+  return lookup;
 }
